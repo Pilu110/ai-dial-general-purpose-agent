@@ -30,13 +30,25 @@
       ]
     },
     "dall-e-3": {
-      "displayName": "DALL-E",
+      "displayName": "DALL-E (GPT-Image-1.5)",
       "endpoint": "http://adapter-dial:5000/openai/deployments/dall-e-3/chat/completions",
       "iconUrl": "http://localhost:3001/gpt3.svg",
       "type": "chat",
       "upstreams": [
         {
-          "endpoint": "https://ai-proxy.lab.epam.com/openai/deployments/dall-e-3/chat/completions",
+          "endpoint": "https://ai-proxy.lab.epam.com/openai/deployments/gpt-image-1.5-2025-12-16/chat/completions",
+          "key": "${DIAL_API_KEY}"
+        }
+      ]
+    },
+    "gemini-image": {
+      "displayName": "Gemini 2.5 Flash Image",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/gemini-image/chat/completions",
+      "iconUrl": "https://chat.lab.epam.com/themes/google.svg",
+      "type": "chat",
+      "upstreams": [
+        {
+          "endpoint": "https://ai-proxy.lab.epam.com/openai/deployments/gemini-2.5-flash-image/chat/completions",
           "key": "${DIAL_API_KEY}"
         }
       ]
