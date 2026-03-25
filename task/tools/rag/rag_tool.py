@@ -1,12 +1,8 @@
 import json
 from typing import Any
 
-import faiss
-import numpy as np
 from aidial_client import AsyncDial
 from aidial_sdk.chat_completion import Message, Role
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from sentence_transformers import SentenceTransformer
 
 from task.tools.base import BaseTool
 from task.tools.models import ToolCallParams
@@ -33,17 +29,35 @@ class RagTool(BaseTool):
         self.document_cache = document_cache
 
         # Lazy init avoids blocking/failing app startup on first request.
-        self.model: SentenceTransformer | None = None
+        self.model = None
+        self.text_splitter = None
+        self._faiss = None
+        self._np = None
 
-        self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=500,
-            chunk_overlap=50,
-            length_function=len,
-            separators=["\n\n", "\n", ". ", " ", ""]
-        )
+    def _ensure_runtime(self) -> None:
+        if self.text_splitter is None:
+            from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-    def _ensure_model(self) -> None:
+            self.text_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=500,
+                chunk_overlap=50,
+                length_function=len,
+                separators=["\n\n", "\n", ". ", " ", ""]
+            )
+
+        if self._faiss is None:
+            import faiss
+
+            self._faiss = faiss
+
+        if self._np is None:
+            import numpy as np
+
+            self._np = np
+
         if self.model is None:
+            from sentence_transformers import SentenceTransformer
+
             self.model = SentenceTransformer('all-MiniLM-L6-v2')
 
     @property
@@ -83,10 +97,10 @@ class RagTool(BaseTool):
 
     async def _execute(self, tool_call_params: ToolCallParams) -> str | Message:
         try:
-            self._ensure_model()
+            self._ensure_runtime()
         except Exception as e:
             msg = (
-                "RAG tool is temporarily unavailable because the embedding model could not be loaded. "
+                "RAG tool is temporarily unavailable because its runtime dependencies could not be loaded. "
                 f"Details: {e}"
             )
             tool_call_params.stage.append_content("## Response: \n")
@@ -120,8 +134,8 @@ class RagTool(BaseTool):
 
             chunks = self.text_splitter.split_text(text_content)
             embeddings = self.model.encode(chunks)
-            index = faiss.IndexFlatL2(384)
-            index.add(np.array(embeddings).astype('float32'))
+            index = self._faiss.IndexFlatL2(384)
+            index.add(self._np.array(embeddings).astype('float32'))
             self.document_cache.set(cache_document_key, index, chunks)
 
         query_embedding = self.model.encode([request]).astype('float32')

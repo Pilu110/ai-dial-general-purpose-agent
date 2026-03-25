@@ -1,10 +1,7 @@
 import io
 from pathlib import Path
 
-import pdfplumber
-import pandas as pd
 from aidial_client import Dial
-from bs4 import BeautifulSoup
 
 
 class DialFileContentExtractor:
@@ -32,6 +29,8 @@ class DialFileContentExtractor:
                 return file_content.decode('utf-8', errors='ignore')
 
             elif file_extension == '.pdf':
+                import pdfplumber
+
                 pdf_file = io.BytesIO(file_content)
                 text = []
                 with pdfplumber.open(pdf_file) as pdf:
@@ -42,12 +41,16 @@ class DialFileContentExtractor:
                 return '\n\n'.join(text)
 
             elif file_extension == '.csv':
+                import pandas as pd
+
                 text_content = file_content.decode('utf-8', errors='ignore')
                 csv_buffer = io.StringIO(text_content)
                 df = pd.read_csv(csv_buffer)
                 return df.to_markdown(index=False)
 
             elif file_extension in ['.html', '.htm']:
+                from bs4 import BeautifulSoup
+
                 html_content = file_content.decode('utf-8', errors='ignore')
                 soup = BeautifulSoup(html_content, 'html.parser')
 

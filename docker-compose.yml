@@ -39,12 +39,19 @@ services:
     ports:
       - "8080:8080"
     image: epam/ai-dial-core:development
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    entrypoint:
+      - sh
+      - -c
+      - 'awk -v key="$DIAL_API_KEY" "{gsub(/[$][{]DIAL_API_KEY[}]/, key); print}" /opt/config/config.json > /tmp/config.json && exec /usr/local/bin/docker-entrypoint.sh'
     environment:
       'AIDIAL_SETTINGS': '/opt/settings/settings.json'
       'JAVA_OPTS': '-Dgflog.config=/opt/settings/gflog.xml'
       'LOG_DIR': '/app/log'
       'STORAGE_DIR': '/app/data'
-      'aidial.config.files': '["/opt/config/config.json"]'
+      'DIAL_API_KEY': '${DIAL_API_KEY}'
+      'aidial.config.files': '["/tmp/config.json"]'
       'aidial.storage.overrides': '{ "jclouds.filesystem.basedir": "data" }'
       'aidial.redis.singleServerConfig.address': 'redis://redis:6379'
     depends_on:
@@ -53,7 +60,7 @@ services:
       - ./settings:/opt/settings
       - ${DIAL_DIR:-.}/core:/opt/config
       - ${DIAL_DIR:-.}/core-logs/:/app/log
-      - ${DIAL_DIR:-.}/core-data/:/app/data
+      - core-data:/app/data
 
   adapter-dial:
     image: epam/ai-dial-adapter-dial:development
@@ -70,4 +77,5 @@ services:
       MCP_TRANSPORT: "streamable-http"
     restart: unless-stopped
 
-
+volumes:
+  core-data:
